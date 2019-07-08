@@ -1,0 +1,14 @@
+---
+title: "5-Naive Bayes"
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    highlight: textmate
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+dir.create("images")
+```

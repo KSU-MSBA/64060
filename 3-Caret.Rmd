@@ -1,0 +1,78 @@
+---
+title: "3-Model Package Caret"
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    highlight: textmate
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+dir.create("images")
+```
+
+***
+
+This notebook illustrates the Caret Package. The caret package (short for Classification And REgression Training) is a set of functions that attempt to streamline the process for creating predictive models. The package contains tools for:
+
+* data splitting/partitioning
+* pre-processing
+* feature selection
+* model tuning using resampling 
+
+***
+
+Install package if necessary. Uncomment before running.
+
+```{r}
+#install.packages("caret")
+```
+
+Now, load the library
+```{r}
+library(caret )
+```
+
+***
+
+Load the ISLR package (Install first if it is not)
+It contains the records sales of baby carseats across different stores 
+```{r}
+# install.packages("ISLR") # only install if needed
+library(ISLR)
+```
+
+***
+
+Let us demonstrate some aspects of the package on a dataset included in ISLR. Carseats is such a dataset.
+
+```{r}
+head(Carseats)
+summary(Carseats)
+```
+
+Assume that we are interested in creating a training and test set from this dataset.
+We will use stratified sampling with Sales as the stratification attribute.
+
+* First, we create an index for the training sample.
+* We next create the training dataset
+* We then use the reverse index of the training sample to create the test set
+* Finally we summarize both sets to ensure that summary statistics are similar
+
+```{r}
+Train_Index=createDataPartition(Carseats$Sales,p=0.75, list=FALSE)
+Train_Data = Carseats[Train_Index,] # create the training data; we include all columns; note the index is row, column
+Test_Data = Carseats[-Train_Index,] # create the test set
+summary(Train_Data$Sales)
+summary(Test_Data$Sales)
+```
+
+The output looks similar for training and test data, which is what we want.
+
+***
+
+If you run all the chunks above, you can display the text, code, and output in an html file. Click on 3-Caret.nb.html file in your directory from withing RStudio.
+
+You can also get the output in word, or pdf form by knitting the output. Use the Knit Document option from the File menu, or use the drop down menu from the Preview option above. 

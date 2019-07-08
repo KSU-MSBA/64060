@@ -1,0 +1,361 @@
+---
+title: "4-Classifiers"
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    highlight: textmate
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+dir.create("images")
+```
+
+***
+
+# k-NN
+
+This notebook illustrates the code for Classifiers module. We will continue to use the Caret Package. The caret package (short for Classification And REgression Training) is a set of functions that attempt to streamline the process for creating predictive models. The package contains tools for:
+
+* data splitting/partitioning
+* pre-processing
+* feature selection
+* model tuning using resampling 
+
+***
+
+Some code in this package comes from the following reference:
+
+* https://www.dataminingbook.com/book/r-edition
+
+***
+
+Install packages if necessary. Uncomment before running.
+
+```{r}
+#install.packages("caret")
+library(caret)
+
+# install.packages("ISLR") # only install if needed
+library(ISLR)
+
+```
+
+***
+
+## Data Splitting
+
+We will use the Carseats datasets.
+
+```{r}
+head(Carseats)
+summary(Carseats)
+```
+
+Assume that we are interested in creating a training and validation set from this dataset. To simplify our illustration, we will restric ourself to the following three variables: Sales, Education, Urban, and use only a small dataset for illustration
+
+* First, we create a dataset with only the required columns. We will use the dplyr package. Install it if necessary
+* Then, we create an index for the training sample.
+* We next create the training dataset
+* We then use the reverse index of the training sample to create the validation set
+
+
+```{r}
+library(dplyr)
+m_carseats <- select(Carseats,Sales,Age,Urban) # Select a subset of variables
+
+set.seed(15)
+Test_Index = createDataPartition(m_carseats$Sales,p=0.2, list=FALSE) # 20% reserved for Test
+Test_Data = m_carseats[Test_Index,]
+TraVal_Data = m_carseats[-Test_Index,] # Validation and Training data is rest
+
+Train_Index = createDataPartition(TraVal_Data$Sales,p=0.75, list=FALSE) # 75% of remaining data as training
+Train_Data = TraVal_Data[Train_Index,]
+Validation_Data = TraVal_Data[-Train_Index,] # rest as validation
+
+summary(Train_Data)
+summary(Validation_Data)
+summary(Test_Data)
+```
+
+***
+
+## Plotting
+
+Let us plot the data. I recommend you use ggplot, instead of the plot command. 
+
+```{r}
+library(ggplot2)
+ggplot(Train_Data, aes(x=Age,y=Sales, color=Urban)) +
+  geom_point() 
+
+```
+
+***
+
+## Normalization
+
+Let us now normalize the data. 
+
+The preProcess ( ) function that is in the ‘caret’ package is a powerful method that has implemented a number of data processing and transformation methods.
+
+ The function implements min-max normalization using “range” as the method or z-score scaling when using “center” and “scale” as input method parameters.
+```{r}
+# Copy the original data
+train.norm.df <- Train_Data
+valid.norm.df <- Validation_Data
+traval.norm.df <- TraVal_Data
+
+# use preProcess() from the caret package to normalize Sales and Age.
+norm.values <- preProcess(Train_Data[, 1:2], method=c("center", "scale"))
+
+train.norm.df[, 1:2] <- predict(norm.values, Train_Data[, 1:2]) # Replace first two columns with normalized values
+valid.norm.df[, 1:2] <- predict(norm.values, Validation_Data[, 1:2])
+traval.norm.df[, 1:2] <- predict(norm.values, traval.norm.df[, 1:2])
+test.norm.df <- predict(norm.values, Test_Data[, 1:2])
+
+summary(train.norm.df)
+var(train.norm.df[, 1:2])
+summary(valid.norm.df)
+var(valid.norm.df[, 1:2])
+```
+
+Notice that after normalization the mean and variance (standard deviation) of Sales and Age are 0 and 1, respectively. This is not true for the validation set as we use the data from the training set to normalize the values in the validation set.
+
+***
+
+## Modeling k-NN
+
+Let us now apply knn. knn() is available in library FNN (provides a list of the nearest neighbors), and library class (allows a numerical output variable).
+
+```{r}
+# install.packages("FNN") Uncomment if need to install package
+library(FNN)
+nn <- knn(train = train.norm.df[, 1:2], test = test.norm.df, 
+          cl = train.norm.df[, 3], k = 3, prob=TRUE) # We use k = 3, and Urban is the Y
+
+# print(nn) # uncomment for more output
+
+row.names(Train_Data)[attr(nn, "nn.index")]
+```
+
+Note the output provides class membership, and also a measure of distances from its nearest neighbors, in this case k=3.
+
+But, how does one choose k?
+
+***
+
+## Hypertuning using Validation
+
+To determine k, we use the performance on the validation set.
+Here, we will vary the value of k from 1 to 14
+
+```{r}
+# initialize a data frame with two columns: k, and accuracy.
+library(caret)
+accuracy.df <- data.frame(k = seq(1, 14, 1), accuracy = rep(0, 14))
+
+# compute knn for different k on validation.
+for(i in 1:14) {
+  knn.pred <- knn(train.norm.df[, 1:2], valid.norm.df[, 1:2], 
+                  cl = train.norm.df[, 3], k = i)
+  accuracy.df[i, 2] <- confusionMatrix(knn.pred, valid.norm.df[, 3])$overall[1] 
+}
+accuracy.df
+```
+
+
+The value of k that provides the best performance is k = 9. We apply the results to the test set.
+
+***
+
+## Prediction
+
+Before we predict for the test set, we should combine the Training and Validation set, normalize the data, and then do the prediction. 
+```{r}
+
+norm.values <- preProcess(TraVal_Data[, 1:2], method=c("center", "scale")) # Use combined set to normalize
+
+traval.norm.df[, 1:2] <- predict(norm.values, TraVal_Data[, 1:2])
+test.norm.df[, 1:2] <- predict(norm.values, Test_Data[, 1:2])
+summary(traval.norm.df)
+summary(test.norm.df)
+```
+
+Now we predict for the test set.
+
+```{r}
+knn.pred.new <- knn(traval.norm.df[, 1:2], test.norm.df, 
+                    cl = traval.norm.df[, 3], k = 9)
+row.names(TraVal_Data)[attr(nn, "nn.index")]
+```
+
+***
+
+# Creating Dummy Variables for Categorical Variables
+
+One approach to calculate distances for categorical variables is to first convert them to numeric using dummy variables.
+```{r}
+levels(Carseats$US)
+dummy_model <- dummyVars(~US,data=Carseats)
+head(predict(dummy_model,Carseats))
+```
+
+***
+
+# Hypertuning - kNN - Part 2
+
+Earlier, we saw an example of hypertuning in determining the value of k. Small values, while sensitive to the data, may also model noise, while large values of k leads to smoother predictions, but are insensitive to local changes. We also saw an example above on how to pick k using the validation set results.
+
+Here, we will use the Caret package that provides a wrapper for a large number of machine learning models (more than 200 models as of now). The train( ) function will automatically perform a grid search over a pre-defined set of hyperparameter values. It then select the best hyperparameter values, for us, k, using cross validations and train a model. This makes the process easier.
+
+***
+
+## Example - Hypertuning
+```{r}
+library(ISLR)
+library(caret)
+#Default dataset is a part of the ISLR package
+# It captures credit card default status as well as balance, income, and student status
+summary(Default)
+```
+
+### Normalization
+
+```{r}
+#let's normalize the data before modelling 
+norm_model<-preProcess(Default, method = c('range')) # We are using range here, but we can easily switch to c("center", "scale")
+Default_normalized<-predict(norm_model,Default)
+summary(Default_normalized)
+sd(Default_normalized$balance)
+```
+
+As we use the range for normalizing, the mean and variances are not 0, and 1 respectively.
+
+***
+
+### train
+
+let's train a k-NN model using the train() function from Caret 
+
+```{r}
+# By setting the random seed, we can reproduce the results 
+set.seed(123)
+model<-train(default~balance+income, data=Default_normalized, method="knn")
+model
+```
+
+### Customizing the search grid
+
+Let us now customize the search space for k
+```{r}
+set.seed(123)
+Serach_grid <- expand.grid(k=c(2,7,9,15))
+model<-train(default~balance+income, data=Default_normalized, 
+             method="knn", tuneGrid=Serach_grid)
+model
+```
+
+We have now restricted the search for the optimal k based on our search space. Finally, let us incorporate all aspects, preprocessing, train, and search in one function
+
+***
+
+### Final Function
+
+```{r}
+set.seed(123)
+Serach_grid <- expand.grid(k=c(2,7,9,15))
+model<-train(default~balance+income, data=Default, 
+             method="knn", tuneGrid=Serach_grid,
+             preProcess='range')
+model
+```
+
+***
+
+# k-NN Class Package
+
+```{r}
+#install.packages("Class") #install first if needed
+library(class)
+library(caret)
+library(ISLR)
+summary(Default)
+```
+
+Let us now normalize the data
+```{r}
+#normalize the data first: build a model and apply 
+norm_model<-preProcess(Default, method = c('range'))
+Default_normalized<-predict(norm_model,Default)
+```
+
+We now predict Default using income and balance
+
+```{r}
+Default_normalized<-Default_normalized[,-2]
+# Use 80% of data for training and the rest for testing
+Index_Train<-createDataPartition(Default_normalized$default, p=0.8, list=FALSE)
+Train <-Default_normalized[Index_Train,]
+Test  <-Default_normalized[-Index_Train,]
+```
+
+The Y variable is Default (first column), which is Yes, or No. 
+Second and third columns are normalized "balance" and "income"
+```{r}
+Train_Predictors<-Train[,2:3] 
+Test_Predictors<-Test[,2:3]
+
+Train_labels <-Train[,1] 
+Test_labels  <-Test[,1] 
+```
+
+Train a knn model where k=4
+```{r}
+Predicted_Test_labels <-knn(Train_Predictors, 
+                           Test_Predictors, 
+                           cl=Train_labels, 
+               k=4 )
+# Look at the 6 first values of predicted class (i.e., default status) of test set
+head(Predicted_Test_labels)
+```
+
+***
+
+## Confusion Matrix
+
+We can print out the confusion matrix, which is part of the CrossTable() function in the "gmodels" package
+```{r}
+#install.packages("gmodels") # install if necessary
+library("gmodels")
+CrossTable(x=Test_labels,y=Predicted_Test_labels, prop.chisq = FALSE)
+```
+
+This matrix shows the following: If Yes is positive, then the misclassifications are 27 false positives, and 43 false negatives. We can identify several measures based on this table. For example
+
+* Accuracy = Number correctly identified / Total = (23 + 1906) / 1999 = .965
+* Recall is the true positive rate or sensitivity = 23 / 66 = .348
+* Precision is the positive predictive value = 23 / (23 + 27) = 0.460
+* Specificity, also called as the true negative rate = 1906 / 1933 = .986
+
+In simple terms, high precision means that an algorithm returned substantially more relevant (positive) results than irrelevant (negative) ones, while high recall means that an algorithm returned most of the relevant (positive) results. 
+
+To find the proportion, look at the proportion across row. For example, false positive is the algorithm labelling a No as Yes, or in other words P (Yes | No) = 27 / 1933 = 0.014. Similarly, false negative is the algorithm labelling a Yes as a No, or P (No | Yes) = 43 / 66 = 0.652.
+
+## Probability Output
+
+Sometimes, it is preferred to have raw prediction probabilities rather than predicted class labels. knn () can additionally return probabilities if ‘prob’ argument is set to true. The probability is defined as the proportion of nearest neighbors that belongs to the majority class.For example, the probability will be 0.6 if 3 out of 5 nearest neighbors are from one class. 
+```{r}
+Predicted_Test_labels <-knn(Train_Predictors, 
+                           Test_Predictors, 
+                           cl=Train_labels, k=100, prob=TRUE )
+
+class_prob<-attr(Predicted_Test_labels, 'prob')
+head(class_prob)
+```
+
+
+
+

@@ -12,3 +12,141 @@ output:
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 dir.create("images")
 ```
+
+***
+
+# Naive Bayes
+
+This code illustrates the Naive Bayes Model.
+
+We will use the e1070 package.
+```{r}
+library(caret)
+library(ISLR)
+# install.packages("e1071") #install first
+library(e1071)  
+
+summary(Default)
+```
+
+Clean the data, and divide into training and test
+```{r}
+#remove student status, which is the second variable
+MyData<-Default[,-2]
+
+set.seed(123)
+#Divide data into test and train
+Index_Train<-createDataPartition(MyData$default, p=0.8, list=FALSE)
+Train <-MyData[Index_Train,]
+Test  <-MyData[-Index_Train,]
+```
+
+Now, run the Naive Bayes model, and predict Default status on the test set
+```{r}
+# Build a naïve Bayes classifier
+nb_model <-naiveBayes(default~balance+income,data = Train)
+nb_model
+```
+
+The first part of the output above shows the ratios of default (yes) and default (no) in the training set (called a priori probabilities), followed by a table giving for each target class, mean and standard deviation of the (sub-)variable. Also, note that the Naive Bayes algorithm assumes a Normal distribution for the independent variables, as we discussed regarding the use of numeric predictors. If the independent variables had been categorical, then you would see the conditional probabilities p(X|Y) for each attribute level given the default status.
+
+Now, use the model on the test set
+```{r}
+# Predict the default status of test dataset 
+Predicted_Test_labels <-predict(nb_model,Test)
+
+library("gmodels")
+
+# Show the confusion matrix of the classifier
+CrossTable(x=Test$default,y=Predicted_Test_labels, prop.chisq = FALSE) 
+```
+
+Our results indicate that we misclassified a total of 55 cases. 5 as False Positives, and 50 as False Negatives.
+
+***
+
+It is sometimes useful to output the raw prediction probabilities rather than the predicted class. To do that, we use the raw option in the model.
+```{r}
+nb_model <- naiveBayes(default~balance+income,data = Train)
+
+
+#Make predictions and return probability of each class
+Predicted_Test_labels <-predict(nb_model,Test, type = "raw")
+
+#show the first few values 
+head(Predicted_Test_labels)
+
+```
+
+***
+
+## ROC Curves
+
+We can now output the ROC curves. Remember that ROC curves plot sensitivity (true positive rate) versus (1 - specificity), which is (1 - TNR) or false positive rate. See [here](https://en.wikipedia.org/wiki/Receiver_operating_characteristic)  for more details 
+
+```{r}
+# install.packages("pROC") # install if necessary
+library(pROC)
+
+#Passing the second column of the predicted probabilities 
+#That column contains the probability associate to ‘yes’
+roc(Test$default, Predicted_Test_labels[,2])
+plot.roc(Test$default,Predicted_Test_labels[,2])
+```
+
+The AUC is 0.9395. The ROC curve is also plotted, though note that the X-Axis is Specificity (True Negative Rate), rather than 1-Specificity (False Positive Rate). This function can also be thought of as a plot of the power as a function of the Type I Error of the decision rule.
+
+***
+
+# Box-Cox Transformation
+
+We first illustrate the transformation of data using the Box-Cox transformation approach
+```{r}
+library(ISLR)
+library(caret)
+#Create a Box-Cox Transformation Model
+Box_Cox_Transform<-preProcess(Default,method = "BoxCox")
+Box_Cox_Transform
+```
+ Now, we apply the transformation
+```{r}
+Default_Transformed=predict(Box_Cox_Transform,Default)
+y <- Default_Transformed$income
+h<-hist(y, breaks=10, col="red", xlab="Income",
+   main="Histogram before Transformation")
+xfit<-seq(min(y),max(y),length=40)
+yfit<-dnorm(xfit,mean=mean(y),sd=sd(y))
+yfit <- yfit*diff(h$mids[1:2])*length(y)
+lines(xfit, yfit, col="blue", lwd=2) 
+```
+
+***
+
+## Hypertuning
+
+```{r}
+library(caret)
+library(ISLR)
+
+
+#remove student status, which is the second variable
+MyData<-Default[,-2]
+
+set.seed(123)
+#Divide data into test and train
+Index_Train<-createDataPartition(MyData$default, p=0.8, list=FALSE)
+Train <-MyData[Index_Train,]
+Test  <-MyData[-Index_Train,]
+
+
+nb_model <-train(default~balance+income,data = Train, preProc = c("BoxCox", "center", "scale"))
+# Predict the default status of test dataset 
+Predicted_Test_labels <-predict(nb_model,Test)
+
+library("gmodels")
+
+# Show the confusion matrix of the classifier
+CrossTable(x=Test$default,y=Predicted_Test_labels, prop.chisq = FALSE) 
+```
+
+

@@ -1,0 +1,99 @@
+---
+title: "7-DBSCAN"
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    highlight: textmate
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+dir.create("images")
+```
+
+***
+
+# dbscan Example
+
+```{r}
+# install.packages("dbscan") # install if necessary
+library("dbscan") 
+#install.packages("fpc")
+library("fpc")
+library('factoextra')
+#moons dataset Contains 100 2-D points, half of which are contained in two # moons or “blobs” (25 points each blob), and the other half in asymmetric # facing crescent shapes.
+data("moons")  
+plot(moons, pch=20) # plot original data points
+
+```
+
+The data shows both nonlinearity and different densities. 
+
+***
+
+Let us apply dbscan to this example
+```{r}
+db <- dbscan::dbscan(moons, eps = 0.5, minPts = 5) #perform clustering
+
+print(db) #print cluster details
+
+plot(db, moons, main = "DBSCAN", frame = FALSE) #plot cluster details
+```
+
+***
+
+# fpc Package
+
+Let us now apply the fpc package to an example
+```{r}
+# install_packages("fpc")
+library('factoextra')
+library('fpc')
+df <- multishapes[, 1:2]
+
+set.seed(123)
+db <- fpc::dbscan(df, eps = 0.15, MinPts = 5) # DBSCAN using fpc package
+
+print(db) # show clusters' details
+
+```
+
+The results show that there are a total of 31 border points. The values under the row Seed indicate the core points. 
+
+```{r}
+# Plot DBSCAN results
+plot(db, df, main = "DBSCAN", frame = FALSE)
+```
+
+The colored triangles indicate core points, while the colored circles border points. The black circles indicates noise (outliers).
+
+Here is an alternative way to depict the same plot
+```{r}
+fviz_cluster(db, df,   stand = FALSE, frame = FALSE, geom = "point") # Alternative way to depict plot
+```
+
+***
+
+## Optimal eps value
+
+dbscan is sensitive to changes in eps values, as the below example illustrates.
+```{r}
+db <- fpc::dbscan(df, eps = 0.5, MinPts = 5)
+plot(db, df, main = "DBSCAN", frame = FALSE)
+```
+
+As you can clearly see, changing the neighborhood changes the categorization of the points. Many of the noise points now belong to a cluster, and there are fewer border points.
+
+***
+
+To determine the optimal eps, we compute the the k-nearest neighbor distances in a matrix of points.The idea is to calculate, the average of the distances of every point to its k nearest neighbors. The value of k will be specified by the user and corresponds to MinPts. Next, these k-distances are plotted in an ascending order. The aim is to determine the “knee”, which corresponds to the optimal eps parameter.
+
+
+```{r}
+dbscan::kNNdistplot(df, k =  5)
+abline(h = 0.15, lty = 2)
+```
+
+Based on the "knee" plot above, the optimal eps = 0.15. 

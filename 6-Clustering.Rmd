@@ -1,0 +1,108 @@
+---
+title: "6-Clustering"
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    highlight: textmate
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+dir.create("images")
+```
+
+***
+
+# K-Means Example: Cars
+
+We illustrate the use of k-means through the "Cars" example. First, install the required packages
+```{r}
+library(tidyverse)  # data manipulation
+# install.packages("factoextra") # if necessary
+library(factoextra) # clustering algorithms & visualization
+library(ISLR)
+set.seed(123)
+
+df<-Auto[,c(1,6)]
+summary(df)
+```
+
+We will cluster cars based on mpg and acceleration. But, first, we must scale the data.
+```{r}
+# Scaling the data frame (z-score) 
+df <- scale(df)
+distance <- get_dist(df)
+fviz_dist(distance)
+```
+
+The above graph shows the distance between cars.The two axes are mpg and acceleration. Let us now run the k-means algorithm to cluster the cars. We will choose an initial value of k = 4.
+```{r}
+k4 <- kmeans(df, centers = 4, nstart = 25) # k = 4, number of restarts = 25
+
+# Visualize the output
+
+k4$centers # output the centers
+
+k4$size # Number of cars in each cluster
+
+k4$cluster[120] # Identify the cluster of the 120th observation as an example
+
+fviz_cluster(k4, data = df) # Visualize the output
+```
+
+It is now easy to see that the bottom left Cluster represents cars with lower than average mpg and acceleration (negative values), while the top right Cluster  represents higher than average mpg and acceleration (positive values for the centroids). 
+
+***
+
+# Other Distances
+
+Let us now rerun the example using other distances
+```{r}
+#install.packages("flexclust")
+library(flexclust)
+set.seed(123)
+#kmeans clustering, using manhattan distance
+k4 = kcca(df, k=4, kccaFamily("kmedians"))
+k4
+```
+
+Let us now apply the predict function
+```{r}
+#Apply the predict() function
+clusters_index <- predict(k4)
+dist(k4@centers)
+image(k4)
+points(df, col=clusters_index, pch=19, cex=0.3)
+```
+
+***
+
+# Determining k
+
+Let us use an "elbow chart" to determine k
+```{r}
+library(tidyverse)  # data manipulation
+library(factoextra) # clustering & visualization
+library(ISLR)
+set.seed(123)
+
+df<-Auto[,c(1,6)]
+# Scaling the data frame (z-score) 
+df <- scale(df)
+fviz_nbclust(df, kmeans, method = "wss")
+```
+
+The chart shows that the elbow point 4 provides the best value for k. While WSS will continue to drop for larger values of k, we have to make the tradeoff between overfitting, i.e., a model fitting both noise and signal, to a model having bias. Here, the elbow point provides that compromise where WSS, while still decreasing beyond k = 4, decreases at a much smaller rate. In other words, adding more clusters beyond 4 brings less improvement to cluster homogeneity.
+
+***
+
+## Silhouette Method
+
+Let us now apply the Silhouette Method to determine the number of clusters
+```{r}
+fviz_nbclust(df, kmeans, method = "silhouette")
+```
+
+Again, we see that 4 is the ideal number of clusters. Here we look for large values for the Silhouette Width (Y Axis)

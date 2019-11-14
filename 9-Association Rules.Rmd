@@ -1,0 +1,123 @@
+---
+title: "9-Association Rules"
+output:
+  html_document:
+    df_print: paged
+  html_notebook:
+    highlight: textmate
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+#dir.create("images")
+```
+
+Reference: Data Science and Big Data Analytics, EMC
+***
+
+# Association Rules Example
+
+Install necessary packages
+```{r}
+#arpack <- c("arules","arulesViz")
+#install.packages(arpack) # install if necessary
+library(arules)
+library(arulesViz)
+```
+## Groceries Dataset
+Load the Groceries dataset
+```{r}
+data("Groceries")
+str(Groceries)
+summary(Groceries)
+```
+The summary shows that the most frequent items in the dataset include items such as whole milk, other vegetables, rolls/buns, soda, and yogurt. These items are purchased more often than the others.
+
+The class of the dataset is transactions, as defined by the arules package. The transactions class contains three slots:
+
+● itemsetInfo: Not being used currently 
+● itemInfo: A data frame to store itemlabels
+● data: A binary incidence matrix that indicates which item labels appear in every transaction
+
+```{r}
+Groceries@itemInfo[1:20,]
+```
+Each grocery label is mapped to two levels of categories— level2 and level1 — where level1 is a superset of level2.For example, grocery label sausage belongs to the sausage category in level2, and it is part of the meat and sausage category in level1.
+
+The following code displays the 10th to 20th transactions of the Groceries dataset. The
+[10:20] can be changed to [1:9835] to display all the transactions.
+```{r}
+apply(Groceries@data[,10:20], 2,
+function(r) paste(Groceries@itemInfo[r,"labels"], collapse=", ")
+)
+```
+Each row in the output shows a transaction that includes one or more products, and each transaction
+corresponds to everything in a customer’s shopping cart. For example, in the first transaction, a customer has purchased whole milk and cereals.
+***
+## Frequent Itemset Generation
+We will use the apriori() function from the arule package to create frequent itemsets. By default, apriori() executes all iterations at once. But, for illustration purposes, we will execute apriori() manually from iteration to iteration.
+
+### Iteration 1-itemsets
+
+The following code identifies 59 frequent 1-itemsets that satisfy the minimum support. The parameters of apriori() specify the minimum and maximum lengths of the itemsets, the minimum support threshold, and the target indicating the type of association mined.
+```{r}
+itemsets <- apriori(Groceries, parameter=list(minlen=1, maxlen=1,
+support=0.02, target="frequent itemsets"))
+summary(itemsets)
+```
+The summary of the itemsets shows that the support of 1-itemsets ranges from 0.02105 to 0.25552.
+Because the maximum support of the 1-itemsets in the dataset is only 0.25552, to enable the discovery of interesting rules, the minimum support threshold should not be set too close to that number.
+
+Let us now inspect the top 10 frequent 1-itemsets
+```{r}
+inspect(head(sort(itemsets, by = "support"), 10))
+```
+Of all the transaction records, the 59 1-itemsets such as {whole milk}, {other vegetables}, {rolls/buns}, {soda}, and {yogurt} all satisfy the minimum support. Therefore, they are called frequent 1-itemsets.
+
+### Iteration 2-itemsets
+
+In this iteration, the list of frequent 1-itemsets is joined onto itself to form all possible candidate2-itemsets.
+```{r}
+itemsets <- apriori(Groceries, parameter=list(minlen=2, maxlen=2,
+support=0.02, target="frequent itemsets"))
+summary(itemsets)
+```
+
+We now display the top 10 2-itemsets
+```{r}
+inspect(head(sort(itemsets, by ="support"),10))
+```
+
+### Iteration 3-itemsets
+
+Let us now combine the frequent 2-itemsets to get candidate 3-itemsets
+```{r}
+itemsets <- apriori(Groceries, parameter=list(minlen=3, maxlen=3,
+support=0.02, target="frequent itemsets"))
+inspect(sort(itemsets, by ="support"))
+```
+There are only two itemsets here.
+
+### Iteration 4-itemsets
+
+Let us run the algorithm one more time
+```{r}
+itemsets <- apriori(Groceries, parameter=list(minlen=4, maxlen=4,
+support=0.02, target="frequent itemsets"))
+inspect(sort(itemsets, by ="support"))
+```
+The previous steps simulate the Apriori algorithm at each iteration. For the Groceries dataset,
+the iterations run out of support when k = 4. Therefore, the frequent itemsets contain 59 frequent
+1-itemsets, 61 frequent 2-itemsets, and 2 frequent 3-itemsets.
+
+***
+
+### Iteration Complete
+
+Let us now run the apriori algorithm with no restriction on the  maxlen
+```{r}
+itemsets <- apriori(Groceries, parameter=list(minlen=1, support=0.02,
+target="frequent itemsets"))
+```
+As shown in the code output that follows, 122 frequent itemsets have been identified. This matches the total number of 59 frequent 1-itemsets, 61 frequent 2-itemsets, and 2 frequent 3-itemsets.

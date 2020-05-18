@@ -3,6 +3,7 @@ title: "6-Clustering"
 output:
   html_document:
     df_print: paged
+    toc: true
   html_notebook:
     highlight: textmate
     theme: cerulean

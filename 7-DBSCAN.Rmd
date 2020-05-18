@@ -3,6 +3,7 @@ title: "7-DBSCAN"
 output:
   html_document:
     df_print: paged
+    toc: true
   html_notebook:
     highlight: textmate
     theme: cerulean

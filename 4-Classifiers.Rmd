@@ -3,6 +3,7 @@ title: "4-Classifiers"
 output:
   html_document:
     df_print: paged
+    toc: true
   html_notebook:
     highlight: textmate
     theme: cerulean
@@ -131,7 +132,7 @@ Notice that after normalization the mean and variance (standard deviation) of Sa
 Let us now apply knn. knn() is available in library FNN (provides a list of the nearest neighbors), and library class (allows a numerical output variable).
 
 ```{r}
-# install.packages("FNN") Uncomment if need to install package
+#install.packages("FNN") # install if needed
 library(FNN)
 nn <- knn(train = train.norm.df[, 1:2], test = test.norm.df, 
           cl = train.norm.df[, 3], k = 3, prob=TRUE) # We use k = 3, and Urban is the Y

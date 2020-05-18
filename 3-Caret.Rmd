@@ -3,6 +3,7 @@ title: "3-Model Package Caret"
 output:
   html_document:
     df_print: paged
+    toc: true
   html_notebook:
     highlight: textmate
     theme: cerulean
@@ -23,6 +24,8 @@ This notebook illustrates the Caret Package. The caret package (short for Classi
 * model tuning using resampling 
 
 ***
+
+# Install Packages
 
 Install package if necessary. Uncomment before running.
 
@@ -45,6 +48,7 @@ library(ISLR)
 ```
 
 ***
+# Explore Dataset
 
 Let us demonstrate some aspects of the package on a dataset included in ISLR. Carseats is such a dataset.
 

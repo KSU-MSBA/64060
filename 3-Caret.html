@@ -7,6 +7,7 @@
 <meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
 
@@ -85,7 +86,6 @@ code {
 }
 img {
   max-width:100%;
-  height: auto;
 }
 .tabbed-pane {
   padding-top: 12px;
@@ -159,18 +159,6 @@ summary {
 }
 </style>
 
-<script>
-$(document).ready(function () {
-  window.buildTabsets("TOC");
-});
-
-$(document).ready(function () {
-  $('.tabset-dropdown > .nav-tabs > li').click(function () {
-    $(this).parent().toggleClass('nav-tabs-open')
-  });
-});
-</script>
-
 <!-- code folding -->
 
 
@@ -194,6 +182,12 @@ $(document).ready(function () {
 
 </div>
 
+<div id="TOC">
+<ul>
+<li><a href="#install-packages">Install Packages</a></li>
+<li><a href="#explore-dataset">Explore Dataset</a></li>
+</ul>
+</div>
 
 <hr />
 <p>This notebook illustrates the Caret Package. The caret package (short for Classification And REgression Training) is a set of functions that attempt to streamline the process for creating predictive models. The package contains tools for:</p>
@@ -204,6 +198,8 @@ $(document).ready(function () {
 <li>model tuning using resampling</li>
 </ul>
 <hr />
+<div id="install-packages" class="section level1">
+<h1>Install Packages</h1>
 <p>Install package if necessary. Uncomment before running.</p>
 <pre class="r"><code>#install.packages(&quot;caret&quot;)</code></pre>
 <p>Now, load the library</p>
@@ -213,6 +209,9 @@ $(document).ready(function () {
 <pre class="r"><code># install.packages(&quot;ISLR&quot;) # only install if needed
 library(ISLR)</code></pre>
 <hr />
+</div>
+<div id="explore-dataset" class="section level1">
+<h1>Explore Dataset</h1>
 <p>Let us demonstrate some aspects of the package on a dataset included in ISLR. Carseats is such a dataset.</p>
 <pre class="r"><code>head(Carseats)</code></pre>
 <div data-pagedtable="false">
@@ -254,14 +253,15 @@ Train_Data = Carseats[Train_Index,] # create the training data; we include all c
 Test_Data = Carseats[-Train_Index,] # create the test set
 summary(Train_Data$Sales)</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.160   5.420   7.490   7.544   9.320  15.630</code></pre>
+##   0.000   5.400   7.490   7.539   9.320  16.270</code></pre>
 <pre class="r"><code>summary(Test_Data$Sales)</code></pre>
 <pre><code>##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##   0.000   5.375   7.020   7.351   9.230  16.270</code></pre>
+##   0.370   5.390   7.490   7.365   9.050  13.390</code></pre>
 <p>The output looks similar for training and test data, which is what we want.</p>
 <hr />
 <p>If you run all the chunks above, you can display the text, code, and output in an html file. Click on 3-Caret.nb.html file in your directory from withing RStudio.</p>
 <p>You can also get the output in word, or pdf form by knitting the output. Use the Knit Document option from the File menu, or use the drop down menu from the Preview option above.</p>
+</div>
 
 
 
@@ -280,6 +280,23 @@ $(document).ready(function () {
 
 
 </script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open')
+  });
+});
+</script>
+
+<!-- code folding -->
+
 
 <!-- dynamically load mathjax for compatibility with self-contained -->
 <script>

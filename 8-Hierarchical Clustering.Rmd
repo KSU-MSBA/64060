@@ -1,0 +1,92 @@
+---
+title: "8-Hierarchical Clustering"
+author: "Murali Shanker"
+date: "11/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Table 15.2
+
+Read the data
+```{r}
+utilities.df <- read.csv("Utilities.csv")
+
+# set row names to the utilities column
+row.names(utilities.df) <- utilities.df[,1]
+
+# remove the utility column
+utilities.df <- utilities.df[,-1]
+
+```
+
+
+Compute Euclidean distance
+```{r}
+# (to compute other distance measures, change the value in method = )
+d <- dist(utilities.df, method = "euclidean")
+d.norm <- dist(utilities.df[,c(6,8)], method = "euclidean")
+```
+
+
+
+
+## Table 15.4
+
+```{r}
+# normalize input variables
+utilities.df.norm <- sapply(utilities.df, scale)
+
+# add row names: utilities
+row.names(utilities.df.norm) <- row.names(utilities.df) 
+
+# compute normalized distance based on variables Sales and FuelCost
+d.norm <- dist(utilities.df.norm[,c(6,8)], method = "euclidean")
+
+```
+
+## Figure 15.3
+```{r}
+# compute normalized distance based on all 8 variables
+d.norm <- dist(utilities.df.norm, method = "euclidean")
+
+# in hclust() set argument method =  
+# to "ward.D", "single", "complete", "average", "median", or "centroid"
+hc1 <- hclust(d.norm, method = "single")
+plot(hc1, hang = -1, ann = FALSE)
+hc2 <- hclust(d.norm, method = "average")
+plot(hc2, hang = -1, ann = FALSE)
+
+```
+
+
+#### Table 15.6
+
+```{r}
+memb <- cutree(hc1, k = 6)
+memb
+memb <- cutree(hc2, k = 6)
+memb
+
+```
+
+
+
+## Figure 15.4
+
+```{r}
+# set labels as cluster membership and utility name
+row.names(utilities.df.norm) <- paste(memb, ": ", row.names(utilities.df), sep = "")
+
+# plot heatmap 
+# rev() reverses the color mapping to large = dark
+heatmap(as.matrix(utilities.df.norm), Colv = NA, hclustfun = hclust, 
+        col=rev(paste("gray",1:99,sep="")))
+
+```
+
+
+

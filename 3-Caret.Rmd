@@ -3,10 +3,12 @@ title: "3-Model Package Caret"
 output:
   html_document:
     df_print: paged
-    toc: true
+    toc: yes
   html_notebook:
     highlight: textmate
     theme: cerulean
+  pdf_document:
+    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -16,7 +18,7 @@ dir.create("images")
 
 ***
 
-This notebook illustrates the Caret Package. The caret package (short for Classification And REgression Training) is a set of functions that attempt to streamline the process for creating predictive models. The package contains tools for:
+This notebook illustrates the Caret Package. The caret package (short for Classification And REgression Training) is a set of functions that attempt to streamline the process for creating predictive models. The package contains many tools including for:
 
 * data splitting/partitioning
 * pre-processing

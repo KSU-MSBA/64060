@@ -1,0 +1,154 @@
+---
+title: 'Naive Bayes: Predicting Delayed Flights'
+author: "Murali Shanker"
+date: "10/23/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Problem Statement
+
+Predicting flight delays can be useful to a variety of organizations. Here, we look at five predictors. The outcome of interest is whether or not the flight is delayed (delayed here means
+arrived more than 15 minutes late). Our data consist of all flights from the Washington, DC area into the New York City area during January 2004. A record is a particular flight. The percentage of delayed flights among these 2201 flights is 19.5%. The data were obtained from the Bureau of Transportation Statistics (available on the web at www.transtats.bts.gov). The goal is to accurately predict whether or not a new flight (not in this dataset), will be delayed. The outcome variable is whether the flight was delayed, and thus it has two classes (1 = delayed and 0 = on time).
+
+## Data Preparation
+
+Load required libraries, and read data
+```{r}
+require(e1071)
+require(caret) # use this to create datasets
+
+delay <- read.csv("./FlightDelays.csv")
+str(delay)
+head(delay)
+```
+We need to convert DAY_WEEK and DAY_OF_MONTH into factors. We also need to categorize CRS_DEP_TIME. There are several ways of doing the last. Here, we will group time into buckets of one hour.
+```{r}
+delay$DAY_WEEK <- factor(delay$DAY_WEEK)
+delay$DAY_OF_MONTH <- factor(delay$DAY_OF_MONTH)
+delay$Flight.Status <- factor(delay$Flight.Status)
+
+# Now put departure time into one-hour buckets
+
+delay$CRS_DEP_TIME <- factor(round(delay$CRS_DEP_TIME/100))
+str(delay)
+head(delay)
+```
+***
+
+## Questions
+
+1. Divide the data into 60% training and 40% validation
+
+```{r}
+# First select the required variables
+selected.var <- c(1, 2, 4, 8, 10, 13)
+set.seed(15)
+delay.tr.in = createDataPartition(delay$Flight.Status,p=0.6, list=FALSE) # 60% reserved for Training
+delay.tr = delay[delay.tr.in,selected.var]
+delay.va <- delay[-delay.tr.in, selected.var] # Validation  data is rest
+summary(delay.tr)
+summary(delay.va)
+```
+
+***
+2. Output both a counts table and a proportion table outlining how many and what proportion of flights were delayed and on-time at each of the three airports.
+
+We will use prop.table() to output the proportions from counts
+```{r}
+table(delay.tr$Flight.Status,delay.tr$DEST)
+prop.table(table(delay.tr$Flight.Status,delay.tr$DAY_WEEK),margin = 1)
+prop.table(table(delay.tr$Flight.Status,delay.tr$CRS_DEP_TIME),margin = 1)
+prop.table(table(delay.tr$Flight.Status,delay.tr$CARRIER),margin = 1)
+prop.table(table(delay.tr$Flight.Status,delay.tr$DEST),margin = 1)
+prop.table(table(delay.tr$Flight.Status,delay.tr$ORIGIN),margin = 1)
+
+ # This will sum row probabilities to 1
+```
+
+****
+3. Run the Naive Bayes model to predict whether the flight is delayed or not. 
+```{r}
+delay.nb <- naiveBayes(Flight.Status ~ ., data = delay.tr)
+delay.nb
+```
+
+
+***
+4. Output the confusion matrix and ROC for the validation data
+
+Let us output the confusion matrices for the training and validation sets, and determine the prediction for a (new) test set
+
+```{r}
+# Training set
+pred.class <- predict(delay.nb, newdata = delay.tr)
+confusionMatrix(pred.class, delay.tr$Flight.Status)
+
+# validation
+pred.prob <- predict(delay.nb, newdata=delay.va, type="raw") # probabilities
+pred.class <- predict(delay.nb, newdata = delay.va) # class membership
+confusionMatrix(pred.class, delay.va$Flight.Status)
+
+# For the test set
+df <- data.frame(actual = delay.va$Flight.Status, predicted = pred.class, pred.prob)
+
+df[delay.va$CARRIER == "DL" & delay.va$DAY_WEEK == 7 & delay.va$CRS_DEP_TIME == 10 & 
+     delay.va$DEST == "LGA" & delay.va$ORIGIN == "DCA",]
+
+```
+
+***
+
+We will now output the ROC
+
+
+```{r}
+# install.packages("pROC") # install if necessary
+require(pROC)
+
+# Note the delayed probabilities are in column 1
+
+roc(delay.va$Flight.Status,pred.prob[,1])
+plot.roc(delay.va$Flight.Status,pred.prob[,1])
+
+# Most confusion matrices use a threshold of 0.5. We can also output the threshold value that maximizes the sum of Sensitivity and Specificity, as shown below
+
+plot.roc(delay.va$Flight.Status,pred.prob[,1],print.thres="best")
+
+```
+The output shows that using a cutoff of 0.146 produces the maximum value for Sensitivity (of 0.484) + Specificity (of 0.778).
+
+For further reading on dealing with probability thresholds:
+
+1. [Dealing with imbalanced classes](https://topepo.github.io/caret/using-your-own-model-in-train.html#Illustration5)
+2. [A book dealing with optimizing probability thresholds](http://appliedpredictivemodeling.com/blog/2014/2/1/lw6har9oewknvus176q4o41alqw2ow)
+
+
+```{r}
+set.seed(949)
+mod0 <- train(Flight.Status ~ ., data = delay.tr,
+              method = "rf",
+              metric = "ROC",
+              tuneGrid = data.frame(mtry = 3),
+              ntree = 1000,
+              trControl = trainControl(method = "repeatedcv",
+                                       repeats = 2,
+                                       classProbs = TRUE,
+                                       summaryFunction = twoClassSummary))
+getTrainPerf(mod0)
+
+roc0 <- roc(delay.va$Flight.Status, 
+            predict(mod0, delay.va, type = "prob")[,1], 
+            levels = rev(levels(delay.va$Flight.Status)))
+roc0
+plot(roc0, print.thres = c(.5), type = "S",
+     print.thres.pattern = "%.3f (Spec = %.2f, Sens = %.2f)",
+     print.thres.cex = .8, 
+     legacy.axes = TRUE)
+```
+
+

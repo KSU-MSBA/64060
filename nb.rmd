@@ -70,11 +70,26 @@ prop.table(table(delay.tr$Flight.Status,delay.tr$ORIGIN),margin = 1)
  # This will sum row probabilities to 1
 ```
 
+We can also the pivot table to generate proportions and counts
+```{r}
+attach(delay.tr)
+ftable(Flight.Status,CARRIER,DEST)
+detach(delay.tr)
+
+# Or
+
+prop.table(ftable(delay.tr, row.vars = 6, col.vars = 2), margin = 1)
+
+```
+
 ****
 3. Run the Naive Bayes model to predict whether the flight is delayed or not. 
 ```{r}
 delay.nb <- naiveBayes(Flight.Status ~ ., data = delay.tr)
 delay.nb
+```
+```{r}
+
 ```
 
 
